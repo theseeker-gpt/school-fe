@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('session-id').addEventListener('change', function() {
         const sessionId = this.value;
         console.log('Session changed to:', sessionId);
+        console.log('Selected session text:', this.options[this.selectedIndex]?.text);
         if (sessionId) {
             loadSessionTermsIntoSelect(sessionId, 'term-id');
         } else {
@@ -290,10 +291,11 @@ async function loadSessionTermsIntoSelect(sessionId, selectId) {
             } else {
                 console.warn('Unknown terms structure');
             }
-
+            console.log('Parsed terms:', terms);
             select.innerHTML = '<option value="">Please Select Term *</option>';
             if (terms.length > 0) {
-                terms.forEach(term => {
+                terms.forEach((term, idx) => {
+                    console.log(`Term ${idx}:`, term);
                     const option = new Option(term.name, term.id);
                     select.add(option);
                 });

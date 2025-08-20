@@ -256,34 +256,45 @@ async function loadSessionsIntoSelect(selectId) {
 // Load session terms into select
 async function loadSessionTermsIntoSelect(sessionId, selectId) {
     console.log('Loading terms for session:', sessionId);
+
+    const select = document.getElementById(selectId);
+    if (select) {
+        select.innerHTML = '<option value="">Loading terms...</option>';
+    }
+
     try {
         const url = `${backend_url}/api/v1/sessions/${sessionId}/terms`;
         console.log('Fetching terms from:', url);
-        
+
         const response = await fetch(url, {
             headers: getHeaders()
         });
-        
+
         console.log('Terms response status:', response.status);
-        
+
+        if (!select) return;
+
         if (response.ok) {
-            const terms = await response.json();
-            console.log('Terms data:', terms);
-            
-            const select = document.getElementById(selectId);
-            if (select) {
-                select.innerHTML = '<option value="">Please Select Term *</option>';
-                terms.forEach(term => {
-                    const option = new Option(term.name, term.id);
-                    select.add(option);
-                });
-                console.log(`Loaded ${terms.length} terms into ${selectId}`);
-            }
+            const data = await response.json();
+            console.log('Terms data:', data);
+
+            const terms = Array.isArray(data) ? data : data.data || [];
+
+            select.innerHTML = '<option value="">Please Select Term *</option>';
+            terms.forEach(term => {
+                const option = new Option(term.name, term.id);
+                select.add(option);
+            });
+            console.log(`Loaded ${terms.length} terms into ${selectId}`);
         } else {
+            select.innerHTML = '<option value="">No terms available</option>';
             const errorText = await response.text();
             console.error('Failed to load terms:', response.status, errorText);
         }
     } catch (error) {
+        if (select) {
+            select.innerHTML = '<option value="">Failed to load terms</option>';
+        }
         console.error('Error loading terms:', error);
     }
 }

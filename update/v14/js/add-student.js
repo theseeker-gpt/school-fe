@@ -276,16 +276,33 @@ async function loadSessionTermsIntoSelect(sessionId, selectId) {
 
         if (response.ok) {
             const data = await response.json();
-            console.log('Terms data:', data);
+            console.log('Terms raw data:', data);
 
-            const terms = Array.isArray(data) ? data : data.data || [];
+            let terms = [];
+            if (Array.isArray(data)) {
+                terms = data;
+            } else if (Array.isArray(data.data)) {
+                terms = data.data;
+            } else if (Array.isArray(data.terms)) {
+                terms = data.terms;
+            } else if (Array.isArray(data.data?.terms)) {
+                terms = data.data.terms;
+            } else {
+                console.warn('Unknown terms structure');
+            }
 
             select.innerHTML = '<option value="">Please Select Term *</option>';
-            terms.forEach(term => {
-                const option = new Option(term.name, term.id);
+            if (terms.length > 0) {
+                terms.forEach(term => {
+                    const option = new Option(term.name, term.id);
+                    select.add(option);
+                });
+                console.log(`Loaded ${terms.length} terms into ${selectId}`);
+            } else {
+                const option = new Option('No terms available', '');
                 select.add(option);
-            });
-            console.log(`Loaded ${terms.length} terms into ${selectId}`);
+                console.log('No terms found');
+            }
         } else {
             select.innerHTML = '<option value="">No terms available</option>';
             const errorText = await response.text();

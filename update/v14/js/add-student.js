@@ -19,7 +19,31 @@ function getHeaders() {
     };
 }
 
+let schoolId = null;
+
+async function fetchSchoolId() {
+    try {
+        const response = await fetch(`${backend_url}/api/v1/user`, { headers: getHeaders() });
+        if (response.ok) {
+            const data = await response.json();
+            schoolId = data.school_id || data.data?.school_id || data.school?.id || null;
+            console.log('Fetched school ID:', schoolId);
+        } else {
+            console.warn('Failed to fetch school ID', response.status);
+        }
+    } catch (error) {
+        console.error('Error fetching school ID:', error);
+    }
+}
+
+function formatDateToISO(dateStr) {
+    if (!dateStr) return '';
+    const [day, month, year] = dateStr.split('/');
+    return `${year}-${month}-${day}`;
+}
+
 document.addEventListener('DOMContentLoaded', function () {
+    fetchSchoolId();
     const form = document.getElementById('add-student-form');
 
     // Load initial independent dropdowns
@@ -32,6 +56,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const handleSessionChange = function() {
         const sessionId = this.value;
+        console.log('Session selected:', sessionId);
         if (sessionId) {
             loadSessionTermsIntoSelect(sessionId, 'term-id');
         } else {
@@ -122,54 +147,58 @@ document.addEventListener('DOMContentLoaded', function () {
         form.addEventListener('submit', function (event) {
             event.preventDefault();
 
-            const formData = new FormData();
-            formData.append('first_name', document.getElementById('first-name').value);
-            formData.append('middle_name', document.getElementById('middle-name').value);
-            formData.append('last_name', document.getElementById('last-name').value);
-            formData.append('gender', document.getElementById('gender').value);
-            formData.append('date_of_birth', document.getElementById('dob').value);
-            formData.append('nationality', document.getElementById('nationality').value);
-            formData.append('state_of_origin', document.getElementById('state-of-origin').value);
-            formData.append('lga_of_origin', document.getElementById('lga-of-origin').value);
-            formData.append('admission_date', document.getElementById('admission-date').value);
-            formData.append('house', document.getElementById('house').value);
-            formData.append('club', document.getElementById('club').value);
-            formData.append('current_session_id', document.getElementById('session-id').value);
-            formData.append('current_term_id', document.getElementById('term-id').value);
-            formData.append('class_id', document.getElementById('class-id').value);
-            formData.append('class_arm_id', document.getElementById('class-arm-id').value);
-            formData.append('class_section_id', document.getElementById('class-section-id').value);
-            formData.append('parent_id', document.getElementById('parent-id').value);
-            formData.append('status', document.getElementById('status').value);
-            formData.append('address', document.getElementById('address').value);
-            formData.append('medical_information', document.getElementById('medical-info').value);
+            const payload = {
+                school_id: schoolId,
+                admission_no: document.getElementById('admission-no').value,
+                first_name: document.getElementById('first-name').value,
+                middle_name: document.getElementById('middle-name').value,
+                last_name: document.getElementById('last-name').value,
+                gender: document.getElementById('gender').value,
+                date_of_birth: formatDateToISO(document.getElementById('dob').value),
+                nationality: document.getElementById('nationality').value,
+                state_of_origin: document.getElementById('state-of-origin').value,
+                lga_of_origin: document.getElementById('lga-of-origin').value,
+                house: document.getElementById('house').value,
+                club: document.getElementById('club').value,
+                current_session_id: document.getElementById('session-id').value,
+                current_term_id: document.getElementById('term-id').value,
+                class_id: document.getElementById('class-id').value,
+                class_arm_id: document.getElementById('class-arm-id').value,
+                class_section_id: document.getElementById('class-section-id').value,
+                parent_id: document.getElementById('parent-id').value,
+                admission_date: formatDateToISO(document.getElementById('admission-date').value),
+                photo_url: '',
+                status: document.getElementById('status').value,
+                address: document.getElementById('address').value,
+                medical_information: document.getElementById('medical-info').value
+            };
 
-            const photoInput = document.getElementById('photo');
-            if (photoInput.files[0]) {
-                formData.append('photo', photoInput.files[0]);
-            }
+            console.log('Submitting student payload:', payload);
 
             fetch(`${backend_url}/api/v1/students`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${getCookie('token')}`, 'Accept': 'application/json' },
-                body: formData
+                headers: { 
+                    'Authorization': `Bearer ${getCookie('token')}`, 
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
             })
-            .then(response => {
+            .then(async response => {
+                const data = await response.json().catch(() => ({}));
                 if (!response.ok) {
-                    return response.json().then(err => {
-                        if (response.status === 422 && err.errors) {
-                            const errorMessages = Object.values(err.errors).flat().join('\n');
-                            throw new Error(errorMessages);
-                        }
-                        throw new Error(err.message || 'Failed to register student');
-                    });
+                    console.error('Student registration failed:', response.status, data);
+                    if (response.status === 422 && data.errors) {
+                        const errorMessages = Object.values(data.errors).flat().join('\n');
+                        throw new Error(errorMessages);
+                    }
+                    throw new Error(data.message || 'Failed to register student');
                 }
-                return response.json();
+                return data;
             })
             .then(data => {
                 alert('Student registered successfully!');
                 form.reset();
-                // Reset all dropdowns to initial state
                 loadParentsIntoSelect('parent-id');
                 loadClassesIntoSelect('class-id');
                 loadSessionsIntoSelect('session-id');
@@ -279,18 +308,19 @@ async function loadSessionTermsIntoSelect(sessionId, selectId) {
     }
 
     try {
+        console.log(`Fetching terms for session: ${sessionId}`);
         const url = `${backend_url}/api/v1/sessions/${sessionId}/terms`;
 
         const response = await fetch(url, {
             headers: getHeaders()
         });
 
-
+        console.log('Terms response status:', response.status);
         if (!select) return;
 
         if (response.ok) {
             const data = await response.json();
-
+            console.log('Terms response data:', data);
             let terms = [];
             if (Array.isArray(data)) {
                 terms = data;
@@ -302,6 +332,7 @@ async function loadSessionTermsIntoSelect(sessionId, selectId) {
                 terms = data.data.terms;
             }
             select.innerHTML = '<option value="">Please Select Term *</option>';
+            console.log('Loaded terms:', terms);
             if (terms.length > 0) {
                 terms.forEach((term, idx) => {
                     const option = new Option(term.name, term.id);
@@ -313,11 +344,13 @@ async function loadSessionTermsIntoSelect(sessionId, selectId) {
             }
         } else {
             select.innerHTML = '<option value="">No terms available</option>';
+            console.warn('Failed to load terms', response.status);
         }
     } catch (error) {
         if (select) {
             select.innerHTML = '<option value="">Failed to load terms</option>';
         }
+        console.error('Error loading terms:', error);
     }
 }
 

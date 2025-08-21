@@ -27,7 +27,6 @@ async function fetchSchoolId() {
         if (response.ok) {
             const data = await response.json();
             schoolId = data.school_id || data.data?.school_id || data.school?.id || null;
-            console.log('Fetched school ID:', schoolId);
         } else {
             console.warn('Failed to fetch school ID', response.status);
         }
@@ -56,7 +55,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const handleSessionChange = function() {
         const sessionId = this.value;
-        console.log('Session selected:', sessionId);
         if (sessionId) {
             loadSessionTermsIntoSelect(sessionId, 'term-id');
         } else {
@@ -173,7 +171,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 medical_information: document.getElementById('medical-info').value
             };
 
-            console.log('Submitting student payload:', payload);
 
             fetch(`${backend_url}/api/v1/students`, {
                 method: 'POST',
@@ -308,19 +305,16 @@ async function loadSessionTermsIntoSelect(sessionId, selectId) {
     }
 
     try {
-        console.log(`Fetching terms for session: ${sessionId}`);
         const url = `${backend_url}/api/v1/sessions/${sessionId}/terms`;
 
         const response = await fetch(url, {
             headers: getHeaders()
         });
 
-        console.log('Terms response status:', response.status);
         if (!select) return;
 
         if (response.ok) {
             const data = await response.json();
-            console.log('Terms response data:', data);
             let terms = [];
             if (Array.isArray(data)) {
                 terms = data;
@@ -332,7 +326,6 @@ async function loadSessionTermsIntoSelect(sessionId, selectId) {
                 terms = data.data.terms;
             }
             select.innerHTML = '<option value="">Please Select Term *</option>';
-            console.log('Loaded terms:', terms);
             if (terms.length > 0) {
                 terms.forEach((term, idx) => {
                     const option = new Option(term.name, term.id);

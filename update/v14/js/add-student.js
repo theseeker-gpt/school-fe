@@ -54,36 +54,76 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    document.getElementById('class-id').addEventListener('change', function() {
+    const classSelect = document.getElementById('class-id');
+    const classArmSelect = document.getElementById('class-arm-id');
+    const classSectionSelect = document.getElementById('class-section-id');
+
+    const handleClassChange = function() {
         const classId = this.value;
         console.log('Class changed to:', classId);
-        console.log('Selected class text:', this.options[this.selectedIndex].text);
-        
+        console.log('Selected class text:', this.options[this.selectedIndex]?.text);
+
         if (classId) {
             // Clear dependent dropdowns first
             clearSelect('class-arm-id', 'Please Select Class Arm *');
             clearSelect('class-section-id', 'Please Select Section');
-            
+
             // Then load class arms
             loadClassArmsIntoSelect(classId, 'class-arm-id');
         } else {
             clearSelect('class-arm-id', 'Please Select Class Arm *');
             clearSelect('class-section-id', 'Please Select Section');
         }
-    });
+    };
 
-    document.getElementById('class-arm-id').addEventListener('change', function() {
+    if (classSelect) {
+        classSelect.addEventListener('change', handleClassChange);
+
+        if (typeof $ !== 'undefined' && $.fn && $.fn.select2) {
+            $(classSelect).on('select2:select', function () {
+                handleClassChange.call(this);
+            });
+        }
+    }
+
+    const handleClassArmChange = function() {
         const classId = document.getElementById('class-id').value;
         const armId = this.value;
         console.log('Class Arm changed to:', armId, 'for class:', classId);
-        
+
         if (armId && classId) {
             clearSelect('class-section-id', 'Please Select Section');
             loadClassArmSectionsIntoSelect(classId, armId, 'class-section-id');
         } else {
             clearSelect('class-section-id', 'Please Select Section');
         }
-    });
+    };
+
+    if (classArmSelect) {
+        classArmSelect.addEventListener('change', handleClassArmChange);
+
+        if (typeof $ !== 'undefined' && $.fn && $.fn.select2) {
+            $(classArmSelect).on('select2:select', function () {
+                handleClassArmChange.call(this);
+            });
+        }
+    }
+
+    const handleClassSectionChange = function() {
+        const sectionId = this.value;
+        console.log('Class Section changed to:', sectionId);
+        console.log('Selected section text:', this.options[this.selectedIndex]?.text);
+    };
+
+    if (classSectionSelect) {
+        classSectionSelect.addEventListener('change', handleClassSectionChange);
+
+        if (typeof $ !== 'undefined' && $.fn && $.fn.select2) {
+            $(classSectionSelect).on('select2:select', function () {
+                handleClassSectionChange.call(this);
+            });
+        }
+    }
 
     // Form submission handler (keeping original)
     if (form) {
@@ -357,15 +397,27 @@ async function loadClassArmsIntoSelect(classId, selectId) {
         console.log('Response headers:', Object.fromEntries(response.headers.entries()));
         
         if (response.ok) {
-            const arms = await response.json();
-            console.log('Class arms data received:', arms);
-            console.log('Arms array length:', arms.length);
-            console.log('Arms structure:', arms.length > 0 ? arms[0] : 'No arms found');
-            
+            const data = await response.json();
+            console.log('Class arms raw data:', data);
+
+            let arms = [];
+            if (Array.isArray(data)) {
+                arms = data;
+            } else if (Array.isArray(data.data)) {
+                arms = data.data;
+            } else if (Array.isArray(data.arms)) {
+                arms = data.arms;
+            } else if (Array.isArray(data.data?.arms)) {
+                arms = data.data.arms;
+            } else {
+                console.warn('Unknown class arms structure');
+            }
+            console.log('Parsed arms:', arms);
+
             if (select) {
                 select.innerHTML = '<option value="">Please Select Class Arm *</option>';
-                
-                if (arms && Array.isArray(arms) && arms.length > 0) {
+
+                if (arms.length > 0) {
                     arms.forEach((arm, index) => {
                         console.log(`Adding arm ${index}:`, arm);
                         const option = new Option(arm.name, arm.id);
@@ -373,7 +425,7 @@ async function loadClassArmsIntoSelect(classId, selectId) {
                     });
                     console.log(`Successfully loaded ${arms.length} arms into ${selectId}`);
                 } else {
-                    console.warn('No arms found or arms is not an array');
+                    console.warn('No arms found');
                     const noDataOption = new Option('No arms available', '');
                     select.add(noDataOption);
                 }
@@ -418,13 +470,27 @@ async function loadClassArmSectionsIntoSelect(classId, armId, selectId) {
         console.log('Sections response status:', response.status);
         
         if (response.ok) {
-            const sections = await response.json();
-            console.log('Sections data:', sections);
-            
+            const data = await response.json();
+            console.log('Sections raw data:', data);
+
+            let sections = [];
+            if (Array.isArray(data)) {
+                sections = data;
+            } else if (Array.isArray(data.data)) {
+                sections = data.data;
+            } else if (Array.isArray(data.sections)) {
+                sections = data.sections;
+            } else if (Array.isArray(data.data?.sections)) {
+                sections = data.data.sections;
+            } else {
+                console.warn('Unknown sections structure');
+            }
+            console.log('Parsed sections:', sections);
+
             if (select) {
                 select.innerHTML = '<option value="">Please Select Section</option>';
-                
-                if (sections && Array.isArray(sections) && sections.length > 0) {
+
+                if (sections.length > 0) {
                     sections.forEach(section => {
                         const option = new Option(section.name, section.id);
                         select.add(option);

@@ -1,1 +1,1 @@
-const backend_url = 'https://api.bmp.com.ng';
+const backend_url = 'http://127.0.0.1:8000';

@@ -26,7 +26,13 @@ async function fetchSchoolId() {
         const response = await fetch(`${backend_url}/api/v1/user`, { headers: getHeaders() });
         if (response.ok) {
             const data = await response.json();
-            schoolId = data.school_id || data.data?.school_id || data.school?.id || null;
+            schoolId =
+                data.school_id ||
+                data.data?.school_id ||
+                data.data?.school?.id ||
+                data.school?.id ||
+                null;
+            console.log('Fetched school ID:', schoolId);
         } else {
             console.warn('Failed to fetch school ID', response.status);
         }
@@ -41,8 +47,8 @@ function formatDateToISO(dateStr) {
     return `${year}-${month}-${day}`;
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-    fetchSchoolId();
+document.addEventListener('DOMContentLoaded', async function () {
+    await fetchSchoolId();
     const form = document.getElementById('add-student-form');
 
     // Load initial independent dropdowns
@@ -231,6 +237,11 @@ async function loadParentsIntoSelect(selectId) {
         if (response.ok) {
             const parents = await response.json();
 
+            if (!schoolId && parents.length > 0) {
+                schoolId = parents[0].school_id;
+                console.log('Derived school ID from parents:', schoolId);
+            }
+
             const select = document.getElementById(selectId);
             if (select) {
                 select.innerHTML = '<option value="">Please Select Parent *</option>';
@@ -282,6 +293,11 @@ async function loadSessionsIntoSelect(selectId) {
         
         if (response.ok) {
             const sessions = await response.json();
+
+            if (!schoolId && sessions.length > 0) {
+                schoolId = sessions[0].school_id;
+                console.log('Derived school ID from sessions:', schoolId);
+            }
 
             const select = document.getElementById(selectId);
             if (select) {

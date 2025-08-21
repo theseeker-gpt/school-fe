@@ -29,7 +29,9 @@ document.addEventListener('DOMContentLoaded', function () {
     loadSessionsIntoSelect('session-id');
 
     // Handle dependent dropdowns with detailed debugging
-    document.getElementById('session-id').addEventListener('change', function() {
+    const sessionSelect = document.getElementById('session-id');
+
+    const handleSessionChange = function() {
         const sessionId = this.value;
         console.log('Session changed to:', sessionId);
         console.log('Selected session text:', this.options[this.selectedIndex]?.text);
@@ -38,7 +40,19 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             clearSelect('term-id', 'Please Select Term *');
         }
-    });
+    };
+
+    if (sessionSelect) {
+        // Standard change event
+        sessionSelect.addEventListener('change', handleSessionChange);
+
+        // Ensure Select2 plugin triggers also load terms
+        if (typeof $ !== 'undefined' && $.fn && $.fn.select2) {
+            $(sessionSelect).on('select2:select', function () {
+                handleSessionChange.call(this);
+            });
+        }
+    }
 
     document.getElementById('class-id').addEventListener('change', function() {
         const classId = this.value;

@@ -89,7 +89,7 @@ function getCookie(name) {
 }
 
 function deleteCookie(name) {
-    document.cookie = name + '=; Max-Age=-99999999;';
+    document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
 }
 
 function getHeaders() {
